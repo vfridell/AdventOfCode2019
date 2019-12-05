@@ -39,11 +39,14 @@ namespace AdventOfCode2019
 
         public static void Part2()
         {
+
             for (int i = 0; i < 100; i++)
             {
                 for (int j = 0; j < 100; j++)
                 {
                     List<int> output = RunProgram(i, j);
+                    IntcodeComputer comp = new IntcodeComputer();
+                    //List<int> output = comp.RunProgram(i, j, input);
                     if(output[0] == 19690720)
                     {
                         Console.WriteLine($"Noun {i}, Verb {j}: 100 * {i} + {j} = {100 * i + j}");
