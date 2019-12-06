@@ -16,7 +16,7 @@ namespace AdventOfCode2019
         public void SetOutput(int o)
         {
             Console.WriteLine($"Output: {o}");
-            Output = 0;
+            Output = o;
         }
 
         public IntcodeComputer()
