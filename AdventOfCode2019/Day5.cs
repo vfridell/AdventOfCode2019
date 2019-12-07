@@ -1,119 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace AdventOfCode2019
 {
-    public class IntcodeComputer
-    {
-        public Dictionary<int, Func<int, List<ParamMode>, List<int>, int>> opCodes;
-        public int Output { get; set; }
-        public int Input { get; set; }
-        public enum ParamMode { Position = 0, Immediate = 1};
-
-        public void SetOutput(int o)
-        {
-            Console.WriteLine($"Output: {o}");
-            Output = o;
-        }
-
-        public IntcodeComputer()
-        {
-            opCodes = new Dictionary<int, Func<int, List<ParamMode>, List<int>, int>>()
-            {
-                { 1, (p, m, l) => //Add
-                    {
-                        Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]},{l[p+3]}");
-                        Console.WriteLine($"Add {(m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1])} + {(m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2])} => index {l[p+3]} ");
-                        l[l[p+3]] = (m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) + (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] );
-                        return p+4;
-                    }
-                },
-                { 2, (p, m, l) => //Mult
-                    {
-                        Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]},{l[p+3]}");
-                        Console.WriteLine($"Mult {(m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1])} * {(m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2])} => index {l[p+3]} ");
-                        l[l[p+3]] = (m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) * (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] );
-                        return p+4;
-                    }
-                },
-                { 3, (p, m, l) => //Input
-                    {
-                        Console.WriteLine($"Input {Input} => index {l[p+1]}");
-                        l[l[p+1]] = Input;
-                        return p+2;
-                    }
-                },
-                { 4, (p, m, l) => //Output
-                    {
-                        SetOutput(m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) ;
-                        return p+2;
-                    }
-                },
-                { 5, (p, m, l) => //Jump if True
-                    {
-                        Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]}");
-                        Console.WriteLine($"JIFT {(m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1])} is non-zero? jump to index {(m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2])}  ");
-                        return (m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) != 0 ? (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] ) : p+3;
-                    }
-                },
-                { 6, (p, m, l) => // Jump if False
-                    {
-                        Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]}");
-                        Console.WriteLine($"JIFF {(m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1])} is zero? jump to index {(m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2])}  ");
-                        return (m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) == 0 ? (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] ) : p+3;
-                    }
-                },
-                { 7, (p, m, l) => // Less Than
-                    {
-                        Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]},{l[p+3]}");
-                        Console.WriteLine($"{(m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1])} < {(m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2])} => index {l[p+3]} = 1 else index {l[p+3]} = 0");
-                        if((m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) < (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] )) l[l[p+3]] = 1;
-                        else l[l[p+3]] = 0;
-                        return p+4;
-                    }
-                },
-                { 8, (p, m, l) => // Greater Than
-                    {
-                        Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]},{l[p+3]}");
-                        Console.WriteLine($"{(m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1])} == {(m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2])} => index {l[p+3]} = 1 else index {l[p+3]} = 0");
-                        if((m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) == (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] )) l[l[p+3]] = 1;
-                        else  l[l[p+3]] = 0;
-                        return p+4;
-                    }
-                },
-            };
-        }
-             
-        public List<ParamMode> GetModes(int opCode)
-        {
-            if (opCode < 100) return new List<ParamMode>() { 0, 0, 0, 0, 0, 0, 0, 0, };
-            var s = opCode.ToString().PadLeft(10, '0');
-            var s1 = s.Substring(0, 8);
-            return s.Substring(0, 8).Select(c => c == '0' ? ParamMode.Position : ParamMode.Immediate).Reverse().ToList();
-        }
-
-        public List<int> RunProgram(List<int> input)
-        {
-            List<int> currentInput = new List<int>(input);
-
-            int p = 0;
-            int opCode = currentInput[p];
-            List<ParamMode> m = GetModes(opCode);
-            opCode = int.Parse(opCode.ToString().PadLeft(10, '0').Substring(8, 2));
-            while (opCode != 99)
-            {
-                int newP = opCodes[opCode](p, m, currentInput);
-                p = newP;
-                opCode = currentInput[p];
-                m = GetModes(opCode);
-                opCode = int.Parse(opCode.ToString().PadLeft(10, '0').Substring(8, 2));
-            }
-            return currentInput;
-        }
-    }
 
     public static class Day5
     {
@@ -124,7 +14,7 @@ namespace AdventOfCode2019
         {
             IntcodeComputer comp = new IntcodeComputer();
 
-            comp.Input = 5;
+            comp.Input.Add(5);
             List<int> output = comp.RunProgram(input);
 
         }
