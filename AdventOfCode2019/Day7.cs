@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Numerics;
 
 namespace AdventOfCode2019
 {
@@ -29,7 +30,7 @@ namespace AdventOfCode2019
 
             List<List<int>> phaseOrders = new List<List<int>>();
             GetPhaseSyncOrder(phasesLL, new List<int>(), phaseOrders);
-            int maxThrusterPower = int.MinValue;
+            BigInteger maxThrusterPower = int.MinValue;
             foreach(List<int> phaseOrder in phaseOrders)
             {
                 // set the phase inputs
@@ -46,9 +47,9 @@ namespace AdventOfCode2019
                 computers["C"].RunProgram(program);
                 computers["D"].RunProgram(program);
                 computers["E"].RunProgram(program);
-                int thrustPower = computers["E"].Output;
+                BigInteger thrustPower = computers["E"].Output;
                 Console.WriteLine($"ThrustPower: {thrustPower}");
-                maxThrusterPower = Math.Max(thrustPower, maxThrusterPower);
+                maxThrusterPower = BigInteger.Max(thrustPower, maxThrusterPower);
 
             }
             Console.WriteLine($"MaxThrustPower: {maxThrusterPower}");
@@ -76,7 +77,7 @@ namespace AdventOfCode2019
 
             List<List<int>> phaseOrders = new List<List<int>>();
             GetPhaseSyncOrder(phasesLL, new List<int>(), phaseOrders);
-            int maxThrusterPower = int.MinValue;
+            BigInteger maxThrusterPower = int.MinValue;
             foreach (List<int> phaseOrder in phaseOrders)
             {
                 // set the phase inputs
@@ -93,9 +94,9 @@ namespace AdventOfCode2019
                 Task.Run(() => computers["C"].RunProgram(program));
                 Task.Run(() => computers["D"].RunProgram(program));
                 computers["E"].RunProgram(program);
-                int thrustPower = computers["E"].Output;
+                BigInteger thrustPower = computers["E"].Output;
                 Console.WriteLine($"ThrustPower: {thrustPower}");
-                maxThrusterPower = Math.Max(thrustPower, maxThrusterPower);
+                maxThrusterPower = BigInteger.Max(thrustPower, maxThrusterPower);
 
             }
             Console.WriteLine($"MaxThrustPower: {maxThrusterPower}");

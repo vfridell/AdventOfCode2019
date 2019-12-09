@@ -15,7 +15,7 @@ namespace AdventOfCode2019
             IntcodeComputer comp = new IntcodeComputer();
 
             comp.Input.Add(5);
-            List<int> output = comp.RunProgram(input);
+            comp.RunProgram(input);
 
         }
     }
