@@ -10,10 +10,10 @@ namespace AdventOfCode2019
     {
         public static List<string> Input = new List<string>()
         {
-           // "#..#.#.#.######..#.#...##","##.#..#.#..##.#..######.#",".#.##.#..##..#.#.####.#..",".#..##.#.#..#.#...#...#.#","#...###.##.##..##...#..#.","##..#.#.#.###...#.##..#.#","###.###.#.##.##....#####.",".#####.#.#...#..#####..#.",".#.##...#.#...#####.##...","######.#..##.#..#.#.#....","###.##.#######....##.#..#",".####.##..#.##.#.#.##...#","##...##.######..##..#.###","...###...#..#...#.###..#.",".#####...##..#..#####.###",".#####..#.#######.###.##.","#...###.####.##.##.#.##.#",".#.#.#.#.#.##.#..#.#..###","##.#.####.###....###..##.","#..##.#....#..#..#.#..#.#","##..#..#...#..##..####..#","....#.....##..#.##.#...##",".##..#.#..##..##.#..##..#",".##..#####....#####.#.#.#","#..#..#..##...#..#.#.#.##"
+            "#..#.#.#.######..#.#...##","##.#..#.#..##.#..######.#",".#.##.#..##..#.#.####.#..",".#..##.#.#..#.#...#...#.#","#...###.##.##..##...#..#.","##..#.#.#.###...#.##..#.#","###.###.#.##.##....#####.",".#####.#.#...#..#####..#.",".#.##...#.#...#####.##...","######.#..##.#..#.#.#....","###.##.#######....##.#..#",".####.##..#.##.#.#.##...#","##...##.######..##..#.###","...###...#..#...#.###..#.",".#####...##..#..#####.###",".#####..#.#######.###.##.","#...###.####.##.##.#.##.#",".#.#.#.#.#.##.#..#.#..###","##.#.####.###....###..##.","#..##.#....#..#..#.#..#.#","##..#..#...#..##..####..#","....#.....##..#.##.#...##",".##..#.#..##..##.#..##..#",".##..#####....#####.#.#.#","#..#..#..##...#..#.#.#.##"
            
-            // ".#....#####...#..","##...##.#####..##","##...#...#.#####.","..#.....X...###..","..#.#.....#....##"
-".#..##.###...#######","##.############..##.",".#.######.########.#",".###.#######.####.#.","#####.##.#.##.###.##","..#####..#.#########","####################","#.####....###.#.#.##","##.#################","#####.##.###..####..","..######..##.#######","####.##.####...##..#",".#####..#.######.###","##...#.##########...","#.##########.#######",".####.#.###.###.#.##","....##.##.###..#####",".#.#.###########.###","#.#.#.#####.####.###","###.##.####.##.#..##"
+  
+//".#..##.###...#######","##.############..##.",".#.######.########.#",".###.#######.####.#.","#####.##.#.##.###.##","..#####..#.#########","####################","#.####....###.#.#.##","##.#################","#####.##.###..####..","..######..##.#######","####.##.####...##..#",".#####..#.######.###","##...#.##########...","#.##########.#######",".####.#.###.###.#.##","....##.##.###..#####",".#.#.###########.###","#.#.#.#####.####.###","###.##.####.##.#..##"
 
         };
         public enum Position { Left, Right};
@@ -78,7 +78,7 @@ namespace AdventOfCode2019
                 foreach (Coordinate a2 in Asteroids)
                 {
                     if (a1 == a2) continue;
-                    double m = (double)(a2.Row - a1.Row) / (double)(a2.Column - a1.Column);
+                    double m = Math.Atan2((double)(a2.Row - a1.Row), (double)(a2.Column - a1.Column)) + (Math.PI / 2);
                     Position pos = (a2.Column < a1.Column) ? Position.Left : Position.Right;
                     coordinateSlopes[a1].Add(a2, (m, pos));
                 }
@@ -88,33 +88,20 @@ namespace AdventOfCode2019
             (Coordinate answer, int maxVisibleAsteroids) = visibleAsteroids.OrderByDescending(t => t.Item2).First();
             Console.WriteLine($"Best Coordinate {answer} has {maxVisibleAsteroids} asteroids visible");
 
-            var righties = coordinateSlopes[answer]
-                            .Where(kvp => kvp.Value.Item2 == Position.Right)
-                            .OrderBy(kvp => kvp.Value.Item1)
-                            .ThenBy(kvp => Coordinate.Distance(answer, kvp.Key));
-            var lefties = coordinateSlopes[answer]
-                            .Where(kvp => kvp.Value.Item2 == Position.Left)
-                            .OrderByDescending(kvp => kvp.Value.Item1)
-                            .ThenBy(kvp => Coordinate.Distance(answer, kvp.Key));
+            var slopesICareAbout = coordinateSlopes[answer].GroupBy(kvp => kvp.Value.Item1)
+                .Where(g => g.Key >= 0)
+                .Select(g => g.OrderBy(kvp => Coordinate.Distance(answer, kvp.Key)).First())
+                .OrderBy(kvp => kvp.Value.Item1);
+            var slopesICareAbout2 = coordinateSlopes[answer].GroupBy(kvp => kvp.Value.Item1)
+                .Where(g => g.Key <= 0)
+                .Select(g => g.OrderBy(kvp => Coordinate.Distance(answer, kvp.Key)).First())
+                .OrderBy(kvp => kvp.Value.Item1);
 
-            var all = righties.Concat(lefties).GroupBy(kvp => kvp.Value);
-            List<Coordinate> blowedUp = new List<Coordinate>();
-            while (true)
-            {
-                foreach (var group in all)
-                {
-                    if (group.Select(kvp => kvp.Key).Any(c => !blowedUp.Contains(c)))
-                    {
-                        var asteeroidToBlowUp = group.Select(kvp => kvp.Key).FirstOrDefault(c => !blowedUp.Contains(c));
-                        blowedUp.Add(asteeroidToBlowUp);
-                        Console.WriteLine($"blowed up {asteeroidToBlowUp}");
-                        if(blowedUp.Count == 200)
-                        {
-                            Console.WriteLine($"200th blowed up is {asteeroidToBlowUp}");
-                        }
-                    }
-                }
-            }
+            var answerPart2 = slopesICareAbout.Concat(slopesICareAbout2).Skip(199).First();
+
+            Console.WriteLine($"200th Asteroid blowed up is at {answerPart2.Key.Column},{answerPart2.Key.Row}");
+            Console.WriteLine($"Answer is {answerPart2.Key.Column * 100 + answerPart2.Key.Row}");
+
         }
 
         private static void DisplayVisibleFromCoordinate(Dictionary<Coordinate, char> map, Dictionary<Coordinate, Dictionary<Coordinate, (double, Position)>> coordinateSlopes, Coordinate inputCoordinate)
