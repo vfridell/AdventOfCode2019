@@ -19,6 +19,7 @@ namespace AdventOfCode2019
         public override string ToString() => $"({Row},{Column})";
 
         public static Coordinate operator +(Coordinate c1, Coordinate c2) => new Coordinate(c1.Row + c2.Row, c1.Column + c2.Column);
+        public static Coordinate operator -(Coordinate c1, Coordinate c2) => new Coordinate(c1.Row - c2.Row, c1.Column - c2.Column);
         public static int Distance(Coordinate c1, Coordinate c2) => Math.Abs(c1.Row - c2.Row) + Math.Abs(c1.Column - c2.Column);
         public static bool AreNeighbors(Coordinate c1, Coordinate c2) => Math.Abs(c1.Row - c2.Row) <= 1  && Math.Abs(c1.Column - c2.Column) <= 1;
 

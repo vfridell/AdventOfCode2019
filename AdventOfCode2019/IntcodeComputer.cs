@@ -19,7 +19,7 @@ namespace AdventOfCode2019
 
         public void SendOutput(BigInteger o)
         {
-            Console.WriteLine($"Output: {o}");
+            if(Debug)Console.WriteLine($"Output: {o}");
             Output = o;
             foreach(var observer in observers) observer.OnNext(Output);
         }
