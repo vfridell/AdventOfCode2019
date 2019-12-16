@@ -12,10 +12,21 @@ namespace AdventOfCode2019
         public BigInteger Output { get; set; }
         public List<BigInteger> Input { get; set; }
         private int _inputIndex = 0;
-        public enum ParamMode { Position = 0, Immediate = 1, Relative = 2};
+        public enum ParamMode { Position = 0, Immediate = 1, Relative = 2 };
         public bool Debug { get; set; } = false;
         private AutoResetEvent _inputAvailableEvent = new AutoResetEvent(false);
         private BigInteger _relativeBase = 0;
+
+        private object _termLock = new object();
+        private bool _forceTerminate = false;
+        public void ForceTerminate()
+        {
+            lock(_termLock)
+            {
+                _forceTerminate = true;
+                _inputAvailableEvent.Set();
+            }
+        }
 
         public void SendOutput(BigInteger o)
         {
@@ -55,6 +66,10 @@ namespace AdventOfCode2019
                         {
                             if(Debug) Console.WriteLine($"Waiting for Input...");
                             _inputAvailableEvent.WaitOne();
+                            lock(_termLock)
+                            {
+                                if(_forceTerminate) return 0;
+                            }
                         }
                         if(Debug)Console.WriteLine($"Input {Input[_inputIndex]} => index {l[p+1]}");
                         SetParamValue(p+1, l, m[0], Input[_inputIndex++]);
@@ -204,6 +219,7 @@ namespace AdventOfCode2019
             opCode = int.Parse(opCode.ToString().PadLeft(10, '0').Substring(8, 2));
             while (opCode != 99)
             {
+                lock (_termLock) { if (_forceTerminate) return; }
                 BigInteger newP = opCodes[opCode](p, m, currentInput);
                 p = newP;
                 opCode = currentInput[p];
