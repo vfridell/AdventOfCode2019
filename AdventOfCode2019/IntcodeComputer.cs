@@ -16,8 +16,13 @@ namespace AdventOfCode2019
         public bool Debug { get; set; } = false;
         private AutoResetEvent _inputAvailableEvent = new AutoResetEvent(false);
         private BigInteger _relativeBase = 0;
+        private BigInteger _instructionPointer = 0;
+
+        private Dictionary<BigInteger, BigInteger> _runningProgram;
 
         private object _termLock = new object();
+        private object _forkLock = new object();
+
         private bool _forceTerminate = false;
         public void ForceTerminate()
         {
@@ -44,8 +49,6 @@ namespace AdventOfCode2019
                     {
                         if(Debug) Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]},{l[p+3]}");
                         if(Debug)Console.WriteLine($"Add { GetParamValue(p+1, l, m[0]) } + {GetParamValue(p+2, l, m[1])} => index {l[p+3]} ");
-                        //l[l[p+3]] = (m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) + (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] );
-                        //l[l[p+3]] = GetParamValue(p+1, l, m[0]) + GetParamValue(p+2, l, m[1]);
                         SetParamValue(p+3, l, m[2], GetParamValue(p+1, l, m[0]) + GetParamValue(p+2, l, m[1]));
                         return p+4;
                     }
@@ -54,7 +57,6 @@ namespace AdventOfCode2019
                     {
                         if(Debug)Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]},{l[p+3]}");
                         if(Debug)Console.WriteLine($"Mult { GetParamValue(p+1, l, m[0])} * {GetParamValue(p+2, l, m[1])} => index {l[p+3]} ");
-                        //l[l[p+3]] = (m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) * (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] );
                         SetParamValue(p+3, l, m[2], GetParamValue(p+1, l, m[0]) * GetParamValue(p+2, l, m[1]));
                         return p+4;
                     }
@@ -68,7 +70,7 @@ namespace AdventOfCode2019
                             _inputAvailableEvent.WaitOne();
                             lock(_termLock)
                             {
-                                if(_forceTerminate) return 0;
+                                if(_forceTerminate) return p;
                             }
                         }
                         if(Debug)Console.WriteLine($"Input {Input[_inputIndex]} => index {l[p+1]}");
@@ -79,7 +81,6 @@ namespace AdventOfCode2019
                 { 4, (p, m, l) => //Output
                     {
                         if(Debug)Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]}");
-                        //SendOutput(m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) ;
                         SendOutput(GetParamValue(p+1, l, m[0])) ;
                         return p+2;
                     }
@@ -88,7 +89,6 @@ namespace AdventOfCode2019
                     {
                         if(Debug)Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]}");
                         if(Debug)Console.WriteLine($"JIFT {GetParamValue(p+1, l, m[0]) } is non-zero? jump to index {GetParamValue(p+2, l, m[1]) }  ");
-                        //return (m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) != 0 ? (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] ) : p+3;
                         return GetParamValue(p+1, l, m[0]) != 0 ? GetParamValue(p+2, l, m[1])  : p+3;
                     }
                 },
@@ -96,7 +96,6 @@ namespace AdventOfCode2019
                     {
                         if(Debug)Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]}");
                         if(Debug)Console.WriteLine($"JIFF {GetParamValue(p+1, l, m[0]) } is zero? jump to index {GetParamValue(p+2, l, m[1])}  ");
-                        //return (m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) == 0 ? (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] ) : p+3;
                         return GetParamValue(p+1, l, m[0]) == 0 ? GetParamValue(p+2, l, m[1])  : p+3;
                     }
                 },
@@ -104,7 +103,6 @@ namespace AdventOfCode2019
                     {
                         if(Debug)Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]},{l[p+3]}");
                         if(Debug)Console.WriteLine($"{GetParamValue(p+1, l, m[0]) } < {GetParamValue(p+2, l, m[1])} => index {l[p+3]} = 1 else index {l[p+3]} = 0");
-                        //if((m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) < (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] )) l[l[p+3]] = 1;
                         if(GetParamValue(p+1, l, m[0]) < GetParamValue(p+2, l, m[1])) 
                             SetParamValue(p+3, l, m[2], 1);
                         else 
@@ -116,7 +114,6 @@ namespace AdventOfCode2019
                     {
                         if(Debug)Console.WriteLine($"{p} => {l[p]},{l[p+1]},{l[p+2]},{l[p+3]}");
                         if(Debug)Console.WriteLine($"{GetParamValue(p+1, l, m[0]) } == {GetParamValue(p+2, l, m[1])} => index {l[p+3]} = 1 else index {l[p+3]} = 0");
-                        //if((m[0] == ParamMode.Position ? l[l[p+1]] : l[p+1]) == (m[1] == ParamMode.Position ? l[l[p+2]] : l[p+2] )) l[l[p+3]] = 1;
                         if(GetParamValue(p+1, l, m[0]) == GetParamValue(p+2, l, m[1]))
                             SetParamValue(p+3, l, m[2], 1);
                         else
@@ -208,21 +205,32 @@ namespace AdventOfCode2019
             Output = 0;
             _inputIndex = 0;
             _relativeBase = 0;
-            //List<int> currentInput = new List<int>(programCode);
-            Dictionary<BigInteger, BigInteger> currentInput = new Dictionary<BigInteger, BigInteger>();
-            for (int i = 0; i < programCode.Count; i++) currentInput.Add(i, programCode[i]);
+            _runningProgram = new Dictionary<BigInteger, BigInteger>();
+            for (int i = 0; i < programCode.Count; i++) _runningProgram.Add(i, programCode[i]);
 
+            _instructionPointer = 0;
+            MainProgramLoop();
+        }
 
-            BigInteger p = 0;
-            BigInteger opCode = (int)currentInput[p];
+        public void Continue()
+        {
+            MainProgramLoop();
+        }
+
+        private void MainProgramLoop()
+        {
+            BigInteger opCode = (int)_runningProgram[_instructionPointer];
             List<ParamMode> m = GetModes(opCode);
             opCode = int.Parse(opCode.ToString().PadLeft(10, '0').Substring(8, 2));
             while (opCode != 99)
             {
                 lock (_termLock) { if (_forceTerminate) return; }
-                BigInteger newP = opCodes[opCode](p, m, currentInput);
-                p = newP;
-                opCode = currentInput[p];
+                lock (_forkLock)
+                {
+                    BigInteger newP = opCodes[opCode](_instructionPointer, m, _runningProgram);
+                    _instructionPointer = newP;
+                }
+                opCode = _runningProgram[_instructionPointer];
                 m = GetModes(opCode);
                 opCode = int.Parse(opCode.ToString().PadLeft(10, '0').Substring(8, 2));
             }
@@ -257,6 +265,23 @@ namespace AdventOfCode2019
         {
             // do nothing
         }
+
+        public IntcodeComputer Clone()
+        {
+            IntcodeComputer clone = new IntcodeComputer();
+            lock (_forkLock)
+            {
+                clone._forceTerminate = false;
+                clone._runningProgram = new Dictionary<BigInteger, BigInteger>(_runningProgram);
+                clone._instructionPointer = _instructionPointer;
+                clone.Input = new List<BigInteger>(Input);
+                clone.Output = Output;
+                clone._inputIndex = _inputIndex;
+                clone.Debug = Debug;
+                clone._relativeBase = _relativeBase;
+            }
+            return clone;
+        }
     }
 
     internal class Unsubscriber<IntcodeComputer> : IDisposable
@@ -275,5 +300,6 @@ namespace AdventOfCode2019
             if (_observers.Contains(_observer))
                 _observers.Remove(_observer);
         }
+
     }
 }
